@@ -954,9 +954,7 @@ std::string convert_diffusers_dit_to_original_krea2(std::string name) {
 // declared by ControlNetBlock. Reuses the UNet down/mid conversion for the shared encoder
 // (down_blocks, mid_block, time_embedding, add_embedding, conv_in) and adds the ControlNet-only
 // mappings: input_hint_block, zero_convs, middle_block_out.
-std::string convert_diffusers_controlnet_to_original_sdxl(std::string name) {
-    name = convert_diffusers_unet_to_original_sdxl(std::move(name));
-
+static std::string convert_diffusers_controlnet_extras(std::string name) {
     static const std::vector<std::pair<std::string, std::string>> prefix_map = {
         {"controlnet_cond_embedding.conv_in.", "input_hint_block.0."},
         {"controlnet_cond_embedding.blocks.0.", "input_hint_block.2."},
@@ -985,6 +983,16 @@ std::string convert_diffusers_controlnet_to_original_sdxl(std::string name) {
     }
 
     return name;
+}
+
+std::string convert_diffusers_controlnet_to_original_sdxl(std::string name) {
+    return convert_diffusers_controlnet_extras(convert_diffusers_unet_to_original_sdxl(std::move(name)));
+}
+
+// SD 1.5's ControlNets as diffusers saves them (lllyasviel's v1.1 among them): SD 1's UNet names,
+// the same ControlNet-only ones as SDXL's.
+static std::string convert_diffusers_controlnet_to_original_sd1(std::string name) {
+    return convert_diffusers_controlnet_extras(convert_diffusers_unet_to_original_sd1(std::move(name)));
 }
 
 static bool is_diffusers_controlnet_name(const std::string& name) {
@@ -1882,6 +1890,8 @@ std::string convert_tensor_name(std::string name, SDVersion version) {
         }
         if (sd_version_is_sdxl(version) && is_diffusers_controlnet_name(name)) {
             name = convert_diffusers_controlnet_to_original_sdxl(name);
+        } else if (sd_version_is_sd1(version) && is_diffusers_controlnet_name(name)) {
+            name = convert_diffusers_controlnet_to_original_sd1(name);
         }
         // controlnet union fusion: nn.MultiheadAttention has in_proj_weight/in_proj_bias,
         // MultiheadAttention here has in_proj.weight/in_proj.bias
