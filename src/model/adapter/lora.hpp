@@ -987,6 +987,9 @@ struct LoraModel : public GGMLRunner {
                 final_tensor = ggml_add_inplace(compute_ctx, final_tensor, diff);
                 final_tensor = ggml_cpy(compute_ctx, final_tensor, model_tensor);
             } else {
+                if (diff->type != model_tensor->type) {
+                    diff = ggml_cast(compute_ctx, diff, model_tensor->type);
+                }
                 final_tensor = ggml_add_inplace(compute_ctx, model_tensor, diff);
             }
             ggml_build_forward_expand(gf, final_tensor);
